@@ -10,7 +10,6 @@ namespace jwin {
 		FBConfig idealConfig;
 		FBConfig currentConfig;
 		DisplayData displayData;
-		MonitorData monitorData;
 
 		FBConfig generateConfig(const GLXFBConfig &cfg) {
 			FBConfig r;

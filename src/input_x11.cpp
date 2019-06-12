@@ -14,7 +14,7 @@ namespace jwin {
 		InputMode inputMode;
 		Position cursorPosition;
 		
-		void init() {
+		bool init() {
 			inputMode = RAW;
 			keyboardState.reserve(Event::Key::__KEY_COUNT__);
 			keyboardState.resize(Event::Key::__KEY_COUNT__);
@@ -24,7 +24,11 @@ namespace jwin {
 			jutil::out << "Input initializing..." << jutil::endl;
 
 			buildKeycodeTranslator();
+
+			return true;
 		}
+
+		void terminate() {}
 
 		void setInputMode(InputMode im) {
 			jutil::Thread::requestGroupWait();
@@ -310,7 +314,14 @@ namespace jwin {
 			int a, b;
 			unsigned int m;
 			if (_dmg::displayData.display) 
-				XQueryPointer(_dmg::displayData.display, _dmg::displayData.rootWindow, &rr, &cr, &a, &b, &(cursorPosition.x()), &(cursorPosition.y()), &m);
+				XQueryPointer(
+					_dmg::displayData.display, 
+					_dmg::displayData.rootWindow, 
+					&rr, &cr, &a, &b, 
+					reinterpret_cast<int*>(&(cursorPosition.x())), 
+					reinterpret_cast<int*>(&(cursorPosition.y())), 
+					&m
+				);
 			return cursorPosition;
 		}
 

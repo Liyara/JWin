@@ -6,7 +6,7 @@
 namespace jwin {
 
 	typedef void* Handle;
-	typedef jml::Vector<int, 2> Position;
+	typedef jml::Vector<long, 2> Position;
 	typedef jml::Vector<size_t, 2> Dimensions;
 
 	struct Geometry {

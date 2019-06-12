@@ -28,6 +28,8 @@ namespace jwin {
 		const unsigned STATE_COMMANDS = MAXIMIZE | MINIMIZE | FULLSCREEN | HIDE_TASKBAR | ALERT | TOP;
 		const unsigned MOTIF_COMMANDS = MOVABLE | RESIZABLE | BORDER;
 
+		bool init() {return true;}
+
 		Handle registerWindow(const Monitor *monitor, const jutil::String &title, const Dimensions &size, const Position &position) {
 
 			jutil::out << "Creating window..." << jutil::endl;
@@ -417,7 +419,7 @@ namespace jwin {
 			return XMoveWindow(_dmg::displayData.display, *((XWindow*)win), p.x(), p.y());
 		}
 
-		void terminateWindows() {
+		void terminate() {
 			jutil::Thread::requestGroupWait();
 			for (auto &i: registeredWindows) unregisterWindow(i);
 			registeredWindows.clear();

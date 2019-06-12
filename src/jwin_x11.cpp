@@ -99,11 +99,15 @@ namespace jwin {
 
 	void init() {
 		XInitThreads();
-		if (display_manager::createDisplay()) input_manager::init();
+		if (display_manager::createDisplay()) {
+			input_manager::init();
+			window_manager::init();
+		}
 	}
 
 	void terminate() {
-		window_manager::terminateWindows();
+		window_manager::terminate();
+		input_manager::terminate();
 		display_manager::destroyDisplay();
 	}	
 }

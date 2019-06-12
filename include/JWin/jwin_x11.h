@@ -3,7 +3,7 @@
 
 #include <JUtil/Core/version.h>
 #ifdef JUTIL_LINUX
-#include <JWin/jwin.h>
+#include <JWin/jwin_platform.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xos.h>
@@ -77,14 +77,6 @@ namespace jwin {
 
 	namespace window_manager {
 
-		/*
-			List of Handles referncing currently active windows.
-
-			Attempting to pass unregistered Handles to JWin functions
-			will result in errors.
-		*/
-		extern jutil::Queue<Handle> registeredWindows;
-
 		//Events accepted by JWin windows
 		extern const long WINDOW_EVENT_MASK;
 
@@ -112,7 +104,7 @@ namespace jwin {
 		void issueStateCommands(Handle, unsigned, WindowAction);
 		void issueMotifCommands(Handle, unsigned, WindowAction);
 
-		void terminateWindows();
+		void terminate();
 	}
 
 	namespace display_manager {
@@ -194,24 +186,7 @@ namespace jwin {
 
 		extern DisplayData displayData;
 
-		//Data structure describing monitors connected to the system
-		struct MonitorData {
-			jutil::Queue<Monitor*> monitors;
-			Monitor *primaryMonitor;
-			MonitorData() :
-				primaryMonitor(nullptr)
-			{}
-		};
-
-		extern MonitorData monitorData;
-
 		typedef jutil::Queue<FBConfig> FBConfigList;
-
-		//Called during initialization, builds display and monitor data.
-		bool createDisplay();
-
-		//Called during termination, frees allocated resources
-		void destroyDisplay();
 
 		FBConfig generateConfig(const GLXFBConfig&);
 		FBConfigList getAllConfigs();
@@ -229,7 +204,6 @@ namespace jwin {
 		extern InputMode inputMode;
 
 		void buildKeycodeTranslator();
-		void init();
 		Event::Key translateKeycode(int);
 		void buildKeycodeTranslator();
 		Event::Key resolveKeycode(int);
@@ -238,10 +212,6 @@ namespace jwin {
 		void moveEvent(Event*, int, int);
 		void resizeEvent(Event*, int, int);
 	}
-
-	namespace _dmg = display_manager;
-	namespace _wmg = window_manager;
-	namespace _img = input_manager;
 }
 
 #endif

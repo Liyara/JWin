@@ -1,5 +1,6 @@
 #include "JWin/Window.h"
 #include <JUtil/IO/IO.h>
+#include <JUtil/Core/Timer.h>
 
 namespace jwin {
 
@@ -13,25 +14,38 @@ namespace jwin {
 	void Window::EventThread::onUnpause() {
 	}
 	void Window::EventThread::main() {
+		if (!parent->handle) 
+			parent->handle = window_manager::registerWindow(parent->initMonitor, parent->name, parent->geometry.size, parent->geometry.position);
 		Event e;
 		e.type = Event::Type::NO_TYPE;
     	while (true) {
 			e = input_manager::pollEvent(parent->handle, &(parent->geometry));
 			if (e.type != Event::Type::NO_TYPE) {
-				if (e.type == Event::Type::CLOSE) parent->close();
 				parent->handleEvent(e);
+				if (e.type == Event::Type::CLOSE) parent->close();
 			}
 			if (!window_manager::windowIsRegistered(parent->handle)) break;
 			yield();
     	}
 	}
 
-	Window::Window(const jutil::String &n, const Dimensions &d, const Position &p, const Monitor *m) : name(n), eventThread(this) {
+	Window::Window(const jutil::String &n, const Dimensions &d, const Position &p, const Monitor *m) : name(n), handle(nullptr), eventThread(this) {
 		if (!m) m = display_manager::getPrimaryMonitor();
+		initMonitor = m;
 		geometry.position = display_manager::monitorToDisplay(m, p);
 		geometry.size = d;
-		handle = window_manager::registerWindow(m, name, d, p);
+		#ifdef JUTIL_LINUX
+			handle = window_manager::registerWindow(m, name, d, p);
+		#endif
 		eventThread.start();
+		jutil::Timer t;
+		t.start();
+		while (!handle) {
+			if (t.get(jutil::SECONDS) > 5) {
+				jutil::err << "JWin: Timeout waiting for window registration!" << jutil::endl;
+				break;
+			}
+		}
 	}
 
 	void Window::setSize(const Dimensions &d) {

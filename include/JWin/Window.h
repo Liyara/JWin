@@ -45,6 +45,7 @@ namespace jwin {
 		jutil::String name;
 		Geometry geometry;
 		Handle handle;
+		const Monitor *initMonitor;
 
 		struct EventThread : public jutil::Thread {
 			EventThread(Window*);
@@ -54,6 +55,7 @@ namespace jwin {
 			void main() override;
 
 			Window *parent;
+
 		};
 
 		EventThread eventThread;
