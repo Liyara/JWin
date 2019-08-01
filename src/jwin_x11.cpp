@@ -45,12 +45,10 @@ namespace jwin {
 		windowOpacity
 	;
 
-	jutil::Queue<jutil::String> supportedGLXExtensions;
-
 	bool setContextHint(int setting, int value) {
 		switch(setting) {
 			case JWIN_SAMPLES:
-				_dmg::idealConfig.samples = value;
+				_dmg::desiredContextSettings.pixelFormat.samples = value;
 				break;
 
 			case JWIN_GL_VERSION_MAJOR:
@@ -69,11 +67,11 @@ namespace jwin {
 	bool setContextHint(int setting, bool value) {
 		switch(setting) {
 			case JWIN_TRANSPARENT:
-				_dmg::idealConfig.transparent = value;
+				_dmg::desiredContextSettings.pixelFormat.transparent = value;
 				break;
 
 			case JWIN_STEREO:
-				_dmg::idealConfig.stereoColor = value;
+				_dmg::desiredContextSettings.pixelFormat.stereoColor = value;
 				break;
 
 			default: return false;;
@@ -84,11 +82,11 @@ namespace jwin {
 	bool setContextHint(int setting, unsigned value) {
 		switch(setting) {
 			case JWIN_MASK_ACCUM:
-				_dmg::idealConfig.accumMask = value;
+				_dmg::desiredContextSettings.pixelFormat.accumMask = value;
 				break;
 
 			case JWIN_MASK_DS:
-				_dmg::idealConfig.attribs.dsMask = value;
+				_dmg::desiredContextSettings.pixelFormat.dsMask = value;
 				break;
 
 			default: return false;

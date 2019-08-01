@@ -36,13 +36,15 @@ namespace jwin {
 
 			XWindow *win;
 
-			char ctitle[title.size() + 1];
+			char *ctitle = new char[title.size() + 1];
 			title.array(ctitle);
 
 			jml::Vector<int, 2> realSize = static_cast<jml::Vector<int, 2> >(size);
 			jml::Vector<int, 2> realPosition = 
 				(monitor->getPosition() + (static_cast<jml::Vector<int, 2> >(monitor->getSize()) / 2) + position) - (realSize / 2)
 			;
+
+			auto _vinf = _dmg::displayData.contextData->settings.pixelFormat.platformConfig.visualInfo;
 
 			XSetWindowAttributes wattr;
 			wattr.background_pixel = 0;
@@ -52,7 +54,7 @@ namespace jwin {
 			wattr.colormap = XCreateColormap(
 				_dmg::displayData.display, 
 				_dmg::displayData.rootWindow, 
-				_dmg::displayData.contextData.config.visualInfo->visual, 
+				_vinf->visual, 
 				AllocNone
 			);
 
@@ -66,9 +68,9 @@ namespace jwin {
 				realSize.x(),
 				realSize.y(),
 				1,
-				_dmg::displayData.contextData.config.visualInfo->depth,
+				_vinf->depth,
 				InputOutput,
-				_dmg::displayData.contextData.config.visualInfo->visual,
+				_vinf->visual,
 				CWColormap | CWBorderPixel | CWEventMask,
 				&wattr
 			));
@@ -131,6 +133,8 @@ namespace jwin {
 
 				jutil::out << "Windows: " << registeredWindows.size() << jutil::endl;
 			}
+
+			delete[] ctitle;
 
 			return (Handle)win;
 		}
@@ -198,14 +202,6 @@ namespace jwin {
 			XUnmapWindow(_dmg::displayData.display, *((XWindow*)win));
 			XMapRaised(_dmg::displayData.display, *((XWindow*)win));
 			XFlush(_dmg::displayData.display);
-			/*if (state && !(state->empty())) {
-				unsigned sendCommands = 0;
-				if (state->find(windowFullscreen)) sendCommands |= FULLSCREEN;
-				if (state->find(windowMaximizeX) && state->find(windowMaximizeY)) sendCommands |= MAXIMIZE;
-				if (state->find(windowAlert)) sendCommands |= ALERT;
-				if (state->find(windowOnTop)) sendCommands |= TOP;
-				issueCommands(win, sendCommands, SET);
-			}*/
 		}
 
 		void switchToggle(WindowAction *action, jutil::Queue<Atom> *state, Atom atom) {

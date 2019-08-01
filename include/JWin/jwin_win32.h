@@ -1,11 +1,24 @@
 #ifndef JWIN_WIN32_H
 #define JWIN_WIN32_H
-#include <JUtil/Core/version.h>
-#ifdef JUTIL_WINDOWS
 #include <JWin/jwin_platform.h>
+#ifdef JUTIL_WINDOWS
+
 #include <windows.h>
 
+#define JWIN_CREATE_PROC_EXTERN(_n) extern JWinType_##_n JWin##_n;
+#define JWIN_CREATE_PROC(_n, _p) JWinType_##_n JWin##_n = (JWinType_##_n) wglGetProcAddress((const GLubyte*)#_p);
+
 namespace jwin {
+
+	typedef BOOL (WINAPI *JWinType_SwapIntervalEXT)(int);
+	typedef BOOL (WINAPI *JWinType_GetPixelFormatAttribiv)(HDC, int, int, UINT, const int*, int*);
+	typedef const char * (WINAPI *JWinType_GetExtensionsString)(HDC);
+	typedef HGLRC (WINAPI *JWinType_CreateContextAttribs)(HDC, HGLRC, const int*);
+
+	JWIN_CREATE_PROC_EXTERN(CreateContextAttribs);
+	JWIN_CREATE_PROC_EXTERN(SwapIntervalEXT);
+	JWIN_CREATE_PROC_EXTERN(GetPixelFormatAttribiv);
+	JWIN_CREATE_PROC_EXTERN(GetExtensionsString);
 
 	namespace window_manager {
 
@@ -39,7 +52,11 @@ namespace jwin {
 	}
 
 	namespace display_manager {
-		int CALLBACK cbMonitorInfo(HMONITOR__*, HDC__*, tagRECT*, long int);
+
+		extern const jutil::Queue<int> ATTRIB_NAMES;
+
+		int CALLBACK cbMonitorInfo(HMONITOR__*, HDC__*, tagRECT*, LPARAM);
+		extern FBConfig idealFormat;
 	}
 }
 

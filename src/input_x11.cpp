@@ -8,10 +8,6 @@
 
 namespace jwin {
 	namespace input_manager {
-
-		jutil::Queue<Event::Action> keyboardState;
-		jutil::Queue<Event::Key> keycodeTranslation;
-		InputMode inputMode;
 		Position cursorPosition;
 		
 		bool init() {

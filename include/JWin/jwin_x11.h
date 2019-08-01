@@ -1,24 +1,11 @@
 #ifndef JWIN_X11_H
 #define JWIN_X11_H
 
-#include <JUtil/Core/version.h>
-#ifdef JUTIL_LINUX
 #include <JWin/jwin_platform.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/Xos.h>
-#include <X11/Xatom.h>
-#include <X11/extensions/Xrandr.h>
-#include <X11/XKBlib.h>
-#include <GL/glew.h>
-#include <GL/glx.h>
-#include <GL/glu.h>
+#ifdef JUTIL_LINUX
 
 #define JWIN_CREATE_PROC_EXTERN(_n, _p) extern JWinType_##_n JWin##_n;
 #define JWIN_CREATE_PROC(_n, _p) JWinType_##_n JWin##_n = (JWinType_##_n) glXGetProcAddressARB((const GLubyte*)#_p);
-#define JWIN_RGBA_32 0x08080808
-#define JWIN_DS_32 0x00180008
-#define JWIN_ACCUM_64 0x10101010
 
 typedef Window XWindow;
 
@@ -73,8 +60,6 @@ namespace jwin {
 		windowOpacity
 	;
 
-	extern jutil::Queue<jutil::String> supportedGLXExtensions;
-
 	namespace window_manager {
 
 		//Events accepted by JWin windows
@@ -109,99 +94,23 @@ namespace jwin {
 
 	namespace display_manager {
 
-		//Attributes describing visual information for use by new windows.
-		struct DisplayAttribs {
-			GLboolean renderable;
-			GLboolean doubleBuffered;
-			GLint drawableType;
-			GLint renderType;
-			GLint visualType;
-			GLuint rgbaMask;
-			GLuint dsMask;
-			DisplayAttribs() :
-				renderable(True),
-				doubleBuffered(True),
-				drawableType(GLX_WINDOW_BIT),
-				renderType(GLX_RGBA_BIT),
-				visualType(GLX_TRUE_COLOR),
-				rgbaMask(JWIN_RGBA_32),
-				dsMask(JWIN_DS_32)
-			{}
-		};
-
-		extern DisplayAttribs displayAttribs;
-
-		typedef jutil::Queue<int> DisplayAttribArray;
-
-		//Data structure representation of a GLXFBConfig
-		struct FBConfig {
-			XID id;
-			XID vid;
-			XRenderPictFormat *format;
-			XVisualInfo *visualInfo;
-			DisplayAttribs attribs;
-			GLXFBConfig glxConfig;
-			GLint bufferLevel;
-			GLboolean stereoColor;
-			GLint nAuxBuffers;
-			GLuint accumMask;
-			GLboolean transparent;
-			GLint samples;
-			FBConfig() :
-				id(0),
-				vid(0),
-				format(nullptr),
-				visualInfo(nullptr),
-				bufferLevel(0),
-				stereoColor(False),
-				nAuxBuffers(0),
-				accumMask(JWIN_ACCUM_64),
-				transparent(False),
-				samples(0)
-			{}
-		};
-
-		extern FBConfig idealConfig;
-		extern FBConfig currentConfig;
-
-		struct ContextData {
-			GLXContext context;
-			FBConfig config;
-		};
-
 		//Data structure for internal data controlling the program's visuals
 		struct DisplayData {
 			Display *display;
-			ContextData contextData;
+			ContextData *contextData;
 			ScreenID currentScreenID;
 			XWindow rootWindow;
-			int glVersionMajor, glVersionMinor;
 			DisplayData() :
 				display(nullptr),
-				currentScreenID(0),
-				glVersionMajor(0),
-				glVersionMinor(0)
+				contextData(nullptr),
+				currentScreenID(0)
 			{}
 		};
 
 		extern DisplayData displayData;
-
-		typedef jutil::Queue<FBConfig> FBConfigList;
-
-		FBConfig generateConfig(const GLXFBConfig&);
-		FBConfigList getAllConfigs();
-		FBConfig getNearestConfig(const FBConfig&, const FBConfigList&);
-		bool validConfig(const FBConfig&);
-		ContextData createContext(const FBConfig&);
-		void setGLVersionMajor(int);
-		void setGLVersionMinor(int);
-		void makeContextCurrent(Handle, const ContextData&);
 	}
 
 	namespace input_manager {
-		extern jutil::Queue<Event::Action> keyboardState;
-		extern jutil::Queue<Event::Key> keycodeTranslation;
-		extern InputMode inputMode;
 
 		void buildKeycodeTranslator();
 		Event::Key translateKeycode(int);

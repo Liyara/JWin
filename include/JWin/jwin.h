@@ -97,7 +97,6 @@ namespace jwin {
 		bool issueCommands(Handle, unsigned, WindowAction);
 		bool moveWindow(Handle, Position, const Geometry&);
 		bool resizeWindow(Handle, const Dimensions&);
-		bool toggleStatus(Handle, unsigned);
 		bool isSet(Handle, WindowProperty);
 	}
 

@@ -12,6 +12,39 @@ namespace jwin {
 		}
 	}
 
+	bool fwininit = false;
+
+	void win32init(Handle handle) {
+		//Grab processes
+
+		PIXELFORMATDESCRIPTOR pfd;
+	    HGLRC tempContext;
+	    HDC tempDC;
+
+	    ZeroMemory(&pfd, sizeof(pfd));
+	    pfd.nSize = sizeof(pfd);
+	    pfd.nVersion = 1;
+	    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+	    pfd.iPixelType = PFD_TYPE_RGBA;
+	    pfd.cColorBits = 24;
+
+	    tempDC = GetDC((HWND)handle);
+
+	    SetPixelFormat(tempDC, ChoosePixelFormat(tempDC, &pfd), &pfd);
+
+	    tempContext = wglCreateContext(tempDC);
+	    wglMakeCurrent(tempDC, tempContext);
+
+	    JWIN_CREATE_PROC(CreateContextAttribs, wglCreateContextAttribsARB);
+		JWIN_CREATE_PROC(SwapIntervalEXT, wglSwapIntervalEXT);
+		JWIN_CREATE_PROC(GetPixelFormatAttribiv, wglGetPixelFormatAttribivARB);
+		JWIN_CREATE_PROC(GetExtensionsString, wglGetExtensionsStringARB);
+
+	    wglDeleteContext(tempContext);
+
+	    fwininit = true;
+	}
+
 	void terminate() {
 		_wmg::terminate();
 		_img::terminate();
@@ -44,7 +77,7 @@ namespace jwin {
 			windowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 			windowClass.lpfnWndProc = _img::eventProc;
 			windowClass.hInstance = GetModuleHandle(NULL);
-		    windowClass.lpszClassName = "JWin WIndow Class";
+		    windowClass.lpszClassName = "JWin Window Class";
 
 			windowClass.hIcon 	= LoadIcon (NULL, IDI_APPLICATION);
 		    windowClass.hIconSm = LoadIcon (NULL, IDI_APPLICATION);
@@ -52,7 +85,6 @@ namespace jwin {
 		    
 		    return RegisterClassEx(&windowClass);
 		}
-
 
 		Handle registerWindow(const Monitor *monitor, const jutil::String &title, const Dimensions &size, const Position &position) {
 
@@ -85,12 +117,25 @@ namespace jwin {
 
 		    if (win) {
 
-		    	jutil::out << "Window registered!" << jutil::endl;
+		    	if (!fwininit) win32init(win);
+
+		    	size_t contextCount = contexts.size();
+
+		    	_dmg::desiredContextSettings.pixelFormat = 
+		    		_dmg::getNearestConfig(
+		    			_dmg::desiredContextSettings.pixelFormat, 
+		    			_dmg::getAllConfigs(GetDC(win));
+		    		)
+		    	;
+
+				_dmg::createContext(displayData.display, desiredContextSettings);
+
+				if (contexts.size() > contextCount) makeContextCurrent(win, &(contexts.last()));
 
 			    ShowWindow(win, SW_SHOW);
 
 			    registeredWindows.insert(win);
-			} else jutil::out << "Window failed to register!" << jutil::endl;
+			}
 
 		    return win;
 		}
@@ -196,6 +241,7 @@ namespace jwin {
 
 				case WM_DESTROY:
 					PostQuitMessage(0);
+					return 0;
 					break;
 
 				case WM_LBUTTONDOWN:
@@ -247,7 +293,8 @@ namespace jwin {
 					break;
 
 				case WM_SIZE:
-					InvalidateRect(hwnd, 0, TRUE);
+					RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE);
+        			UpdateWindow(hwnd);
 					break;
 
 				default: return DefWindowProc(hwnd, msg, wp, lp);
@@ -260,7 +307,192 @@ namespace jwin {
 	}
 
 	namespace display_manager {
-		int CALLBACK cbMonitorInfo(HMONITOR__* monitor, HDC__*, tagRECT *rect, long int lpid) {
+
+		const jutil::Queue<int> ATTRIB_NAMES = {
+			WGL_DRAW_TO_WINDOW_ARB,
+			WGL_DRAW_TO_BITMAP_ARB,
+			WGL_TRANSPARENT_ARB,
+			WGL_SUPPORT_GDI_ARB,
+	        WGL_SUPPORT_OPENGL_ARB,
+	        WGL_DOUBLE_BUFFER_ARB,
+	        WGL_STEREO_ARB,
+	        WGL_COLOR_BITS_ARB,
+	        WGL_RED_BITS_ARB,
+	        WGL_RED_SHIFT_ARB,
+	        WGL_GREEN_BITS_ARB,
+	        WGL_GREEN_SHIFT_ARB,
+	        WGL_BLUE_BITS_ARB,
+	        WGL_BLUE_SHIFT_ARB,
+	        WGL_ALPHA_BITS_ARB,
+	        WGL_ALPHA_SHIFT_ARB,
+	        WGL_ACCUM_BITS_ARB,
+	        WGL_ACCUM_RED_BITS_ARB,
+	        WGL_ACCUM_GREEN_BITS_ARB,
+	        WGL_ACCUM_BLUE_BITS_ARB,
+	        WGL_ACCUM_ALPHA_BITS_ARB,
+	        WGL_DEPTH_BITS_ARB,
+	        WGL_STENCIL_BITS_ARB,
+	        WGL_AUX_BUFFERS_ARB
+		};
+
+		template <typename T>
+		T getAttribValue(const jutil::Queue<int> &values, int name) {
+			for (size_t i = 0; i < ATTRIB_NAMES.size(); ++i) {
+				if (ATTRIB_NAMES[i] == name) return static_cast<T>(values[i]);
+			}
+			return static_cast<T>(ATTRIB_NOT_FOUND);
+		}
+
+		PixelFormat generateConfig(JWIN_DISPLAY_CONTEXT hdc, const JWIN_RAW_FBCONFIG &cfg) {
+			PixelFormat r;
+			r.id = 0;
+
+			jutil::Queue<int> values;
+			values.reserve(ATTRIB_NAMES.size());
+			values.resize(ATTRIB_NAMES.size());
+
+			if (wglGetPixelFormatAttribivARB(hdc, cfg, 0, ATTRIB_NAMES.size(), ATTRIB_NAMES.getArray(), values.getArray())) {
+
+				r.id = (JWIN_ID)cfg;
+
+				r.transparent = getAttribValue<GLboolean>(values, WGL_TRANSPARENT_ARB);
+				r.stereoColor = getAttribValue<GLboolean>(values, WGL_STEREO_ARB);
+				r.nAuxBuffers = getAttribValue<GLint>(values, WGL_AUX_BUFFERS_ARB);
+				r.samples = getAttribValue<GLint>(values, WGL_SAMPLES_ARB);
+
+				r.accumMask = createMask(jutil::Queue<uint8_t> {
+					getAttribValue<uint8_t>(values, WGL_ACCUM_ALPHA_BITS_ARB),
+					getAttribValue<uint8_t>(values, WGL_ACCUM_BLUE_BITS_ARB),
+					getAttribValue<uint8_t>(values, WGL_ACCUM_GREEN_BITS_ARB),
+					getAttribValue<uint8_t>(values, WGL_ACCUM_RED_BITS_ARB)
+				});
+
+				r.renderable = getAttribValue<GLboolean>(values, WGL_SUPPORT_OPENGL_ARB);
+
+				r.drawableType = 0;
+				r.renderType = 0;
+
+				if (getAttribValue<GLboolean>(values, WGL_DRAW_TO_WINDOW_ARB)) r.drawableType |= JWIN_TARGET_WINDOW;
+				if (getAttribValue<GLboolean>(values, WGL_DRAW_TO_BITMAP_ARB)) r.drawableType |= JWIN_TARGET_BITMAP;
+
+				if (getAttribValue<GLboolean>(values, WGL_TYPE_RGBA_ARB)) r.renderType |= JWIN_RENDER_RGBA;
+				if (getAttribValue<GLboolean>(values, WGL_TYPE_COLORINDEX_ARB)) r.renderType |= JWIN_RENDER_COLORINDEX;
+
+				r.doubleBuffered = getAttribValue<GLboolean>(values, WGL_DOUBLE_BUFFER_ARB);
+
+				r.rgbaMask = createMask(jutil::Queue<uint8_t> {
+					getAttribValue<uint8_t>(values, WGL_ALPHA_BITS_ARB),
+					getAttribValue<uint8_t>(values, WGL_BLUE_BITS_ARB),
+					getAttribValue<uint8_t>(values, WGL_GREEN_BITS_ARB),
+					getAttribValue<uint8_t>(values, WGL_RED_BITS_ARB)
+				});
+
+				r.dsMask = createMask(jutil::Queue<uint16_t> {
+					getAtrribValue<uint16_t>(values, WGL_STENCIL_BITS),
+					getAtrribValue<uint16_t>(values, WGL_DEPTH_BITS)
+				});
+			}
+
+			return r;
+		}
+
+		bool validConfig(const PixelFormat &cfg) {
+			return (
+				cfg.id &&
+				cfg.attribs.doubleBuffered && 
+				cfg.attribs.rgbaMask == JWIN_RGBA && 
+				cfg.attribs.renderable &&  
+				(cfg.attribs.renderType & JWIN_RENDER_RGBA) && 
+				(cfg.attribs.drawableType & JWIN_TARGET_WINDOW) 
+			);
+		}
+
+		jutil::Queue<PixelFormat> getAllConfigs(JWIN_DISPLAY_CONTEXT hdc) {
+
+			jutil::Queue<PixelFormat> r;
+
+			int attribNameCount = WGL_NUMBER_PIXEL_FORMATS_ARB, attribValueCount = 0;
+			wglGetPixelFormatAttribivARB(hdc, 1, 0, 1, &attribNameCount, &attribValueCount);
+
+			r.reserve(attribValueCount);
+
+			for(int i = 0; i < attribValueCount; ++i) {
+				PixelFormat pf = generatePixelFormat(hdc, i + 1);
+				if (validFormat(pf)) r.insert(pf);
+			}
+
+			return r;
+		}
+
+		void populateSupportedExtensions(JWIN_DISPLAY_CONTEXT hdc) {
+			supportedExtensions = jutil::split(
+				jutil::String(
+					wglGetExtensionsStringARB(
+						hdc, 
+					)
+				), char(' ')
+			);
+		}
+
+		ContextData createContext(JWIN_DISPLAY_CONTEXT hdc, const ContextSettings &settings) {
+			ContextData r;
+			const PixelFormat *PF = &(r.pixelFormat);
+			PIXELFORMATDESCRIPTOR pfd = {0};
+
+			r.displayContext = hdc;
+			r.settings = settings;
+			r.drawableObject = nullptr;
+
+			DescribePixelFormat(hdc, PF->id, sizeof(pfd), &pfd);
+			SetPixelFormat(hdc, PF->id, &pfd);
+
+			if (supportedExtensions.find(jutil::String("WGL_ARB_create_context"))) {
+				int *contextAttribs = new int[9];
+
+				int i = 0;
+
+				contextAttribs[i++] = WGL_CONTEXT_MAJOR_VERSION_ARB;
+				contextAttribs[i++] = cfg.glVersionMajor;
+
+				contextAttribs[i++] = WGL_CONTEXT_MINOR_VERSION_ARB;
+				contextAttribs[i++] = cfg.glVersionMinor;
+
+				if (cfg.forwardCompatible || cfg.debug) {
+					contextAttribs[i++] = WGL_CONTEXT_FLAGS_ARB;
+					contextAttribs[i++] = 0;
+					if (cfg.forwardCompatible) contextAttribs[i - 1] |= WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
+					if (cfg.debug) contextAttribs[i - 1] |= WGL_CONTEXT_DEBUG_BIT_ARB;
+				}
+
+				contextAttribs[i++] = WGL_CONTEXT_PROFILE_MASK_ARB;
+				contextAttribs[i++] = cfg.profile;
+
+				contextAttribs[i] = None;
+
+				r.renderContext = wglCreateContextAttribsARB(hdc, NULL, contextAttribs);
+			} else {
+				r.renderContext = wglCreateContext(hdc);
+			}
+
+			if (r.displayContext && r.renderContext) contexts.insert(r);
+
+			return r;
+		}
+
+		void makeContextCurrent(Handle win, ContextData *context) {
+			if (wglMakeCurrent(
+				context->displayContext,
+				context->renderContext
+			)) {
+				jutil::out << "Context made current." << jutil::endl;
+				context->drawableObject = win;
+				currentContext = context;
+			}
+
+			if (glewInit() == GLEW_OK) jutil::out << "GLEW initialized." << jutil::endl;
+		}
+
+		int CALLBACK cbMonitorInfo(HMONITOR__* monitor, HDC__*, tagRECT *rect, LPARAM lpid) {
 			size_t *id = reinterpret_cast<size_t*>(lpid);
 
 			MONITORINFOEX info;
@@ -292,52 +524,19 @@ namespace jwin {
 				return false;
 			}
 			else if (!monitorData.primaryMonitor) monitorData.primaryMonitor = monitorData.monitors.first();
+
 			return true;
 		}
 		void destroyDisplay() {
 			monitorData.primaryMonitor = nullptr;
 			monitorData.monitors.clear();
 		}
-		const jutil::Queue<Monitor*> &getMonitors() {
-			return monitorData.monitors;
+		void setVSync(Handle, bool s) {
+			JWinSwapIntervalEXT((s? 1 : 0));
 		}
-		const Monitor *getMonitor(size_t i) {
-			return monitorData.monitors[i];
+		void swapBuffers(Handle win) {
+			SwapBuffers(GetDC(win));
 		}
-		const Monitor *getPrimaryMonitor() {
-			return monitorData.primaryMonitor;
-		}
-		const Monitor *pointInMonitor(const Position &pos) {
-			for (auto &i: monitorData.monitors) {
-				int 
-					leftSide = i->getPosition().x(),
-					rightSide = leftSide + i->getSize().x(),
-					top = i->getPosition().y(),
-					bottom = top + i->getSize().y()
-				;
-
-				if (pos.x() >= leftSide && pos.x() < rightSide && pos.y() >= top && pos.y() < bottom) return i;
-			}
-
-			return nullptr;
-		}
-
-		Position monitorToDisplay(const Monitor *m, const Position &pos) {
-			return (m->getPosition() + (static_cast<jml::Vector<int, 2> >(m->getSize()) / 2) + pos);
-		}
-
-		Position displayToMonitor(const Position &pos, const Monitor **m) {
-			const Monitor *nm = pointInMonitor(pos);
-			if (nm) {
-				if (m) *m = nm;
-				return (pos - (static_cast<jml::Vector<int, 2> >(nm->getSize()) / 2) - nm->getPosition());
-			} else {
-				if (m) *m = nullptr;
-				return 0;
-			}
-		}
-		void setVSync(Handle, bool) {}
-		void swapBuffers(Handle) {}
 	}
 }
 
