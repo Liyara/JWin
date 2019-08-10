@@ -5,7 +5,8 @@
 
 #ifdef JUTIL_WINDOWS
 
-#include <GL/wgl.h>
+#include <windows.h>
+#include <GL/wglew.h>
 
 #define JWIN_TARGET_WINDOW	PFD_DRAW_TO_WINDOW
 #define JWIN_TARGET_BITMAP  PFD_DRAW_TO_BITMAP
@@ -20,7 +21,7 @@
 #define JWIN_PLATFORM_FORMAT __jwin_win32_platform_format__
 #define JWIN_CORE_PROFILE WGL_CONTEXT_CORE_PROFILE_BIT_ARB
 #define JWIN_COMPATIBILITY_PROFILE WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB
-#define ATTRIB_NOT_FOUND -0xFFA0987E;
+#define ATTRIB_NOT_FOUND -0xFFA0987E
 #define JWIN_EXTENSION_CREATE_CONTEXT_ATTRIBS #WGL_ARB_create_context
 
 namespace jwin {

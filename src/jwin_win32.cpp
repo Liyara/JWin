@@ -88,6 +88,8 @@ namespace jwin {
 
 		Handle registerWindow(const Monitor *monitor, const jutil::String &title, const Dimensions &size, const Position &position) {
 
+			jutil::out << "2A" << jutil::endl;
+
 			jml::Vector<int, 2> realSize = static_cast<jml::Vector<int, 2> >(size);
 			jml::Vector<int, 2> realPosition = 
 				(monitor->getPosition() + (static_cast<jml::Vector<int, 2> >(monitor->getSize()) / 2) + position) - (realSize / 2)
@@ -113,24 +115,34 @@ namespace jwin {
 		        NULL
 		    );
 
+		    jutil::out << "2B" << jutil::endl;
+
 		    delete[] ctitle;
 
 		    if (win) {
 
 		    	if (!fwininit) win32init(win);
 
-		    	size_t contextCount = contexts.size();
+		    	size_t contextCount = _dmg::contexts.size();
+
+		    	jutil::out << "2C" << jutil::endl;
 
 		    	_dmg::desiredContextSettings.pixelFormat = 
 		    		_dmg::getNearestConfig(
 		    			_dmg::desiredContextSettings.pixelFormat, 
-		    			_dmg::getAllConfigs(GetDC(win));
+		    			_dmg::getAllConfigs(GetDC(win))
 		    		)
 		    	;
 
-				_dmg::createContext(displayData.display, desiredContextSettings);
+		    	jutil::out << "2D" << jutil::endl;
 
-				if (contexts.size() > contextCount) makeContextCurrent(win, &(contexts.last()));
+				_dmg::createContext(GetDC(win), _dmg::desiredContextSettings);
+
+				jutil::out << "2E" << jutil::endl;
+
+				if (_dmg::contexts.size() > contextCount) makeContextCurrent(win, &(_dmg::contexts.last()));
+
+				jutil::out << "2F" << jutil::endl;
 
 			    ShowWindow(win, SW_SHOW);
 
@@ -351,7 +363,11 @@ namespace jwin {
 			values.reserve(ATTRIB_NAMES.size());
 			values.resize(ATTRIB_NAMES.size());
 
-			if (wglGetPixelFormatAttribivARB(hdc, cfg, 0, ATTRIB_NAMES.size(), ATTRIB_NAMES.getArray(), values.getArray())) {
+			int *attrs = new int[ATTRIB_NAMES.size()];
+
+			for (size_t i = 0; i < ATTRIB_NAMES.size(); ++i) attrs[i] = ATTRIB_NAMES[i];
+
+			if (wglGetPixelFormatAttribivARB(hdc, cfg, 0, ATTRIB_NAMES.size(), attrs, values.getArray())) {
 
 				r.id = (JWIN_ID)cfg;
 
@@ -388,10 +404,13 @@ namespace jwin {
 				});
 
 				r.dsMask = createMask(jutil::Queue<uint16_t> {
-					getAtrribValue<uint16_t>(values, WGL_STENCIL_BITS),
-					getAtrribValue<uint16_t>(values, WGL_DEPTH_BITS)
+					getAttribValue<uint16_t>(values, WGL_STENCIL_BITS_ARB),
+					getAttribValue<uint16_t>(values, WGL_DEPTH_BITS_ARB)
 				});
 			}
+
+
+			delete[] attrs;
 
 			return r;
 		}
@@ -399,44 +418,49 @@ namespace jwin {
 		bool validConfig(const PixelFormat &cfg) {
 			return (
 				cfg.id &&
-				cfg.attribs.doubleBuffered && 
-				cfg.attribs.rgbaMask == JWIN_RGBA && 
-				cfg.attribs.renderable &&  
-				(cfg.attribs.renderType & JWIN_RENDER_RGBA) && 
-				(cfg.attribs.drawableType & JWIN_TARGET_WINDOW) 
+				cfg.doubleBuffered && 
+				cfg.rgbaMask == JWIN_RGBA && 
+				cfg.renderable &&  
+				(cfg.renderType & JWIN_RENDER_RGBA) && 
+				(cfg.drawableType & JWIN_TARGET_WINDOW) 
 			);
 		}
 
 		jutil::Queue<PixelFormat> getAllConfigs(JWIN_DISPLAY_CONTEXT hdc) {
 
+			if (!hdc) jutil::out << "3X" << jutil::endl;
+
+			jutil::out << "3A" << jutil::endl;
+
 			jutil::Queue<PixelFormat> r;
+
+			jutil::out << "3B" << jutil::endl;
 
 			int attribNameCount = WGL_NUMBER_PIXEL_FORMATS_ARB, attribValueCount = 0;
 			wglGetPixelFormatAttribivARB(hdc, 1, 0, 1, &attribNameCount, &attribValueCount);
+			jutil::out << "3C" << jutil::endl;
 
 			r.reserve(attribValueCount);
 
 			for(int i = 0; i < attribValueCount; ++i) {
-				PixelFormat pf = generatePixelFormat(hdc, i + 1);
-				if (validFormat(pf)) r.insert(pf);
+				jutil::out << "3D" << i << jutil::endl;
+				PixelFormat pf = generateConfig(hdc, i + 1);
+				if (validConfig(pf)) r.insert(pf);
 			}
 
 			return r;
 		}
 
 		void populateSupportedExtensions(JWIN_DISPLAY_CONTEXT hdc) {
-			supportedExtensions = jutil::split(
-				jutil::String(
-					wglGetExtensionsStringARB(
-						hdc, 
-					)
-				), char(' ')
-			);
+
+			jutil::String supportedExtensionsStr = (jutil::String)(wglGetExtensionsStringARB(hdc));
+
+			supportedExtensions = jutil::split(supportedExtensionsStr, ' ');
 		}
 
 		ContextData createContext(JWIN_DISPLAY_CONTEXT hdc, const ContextSettings &settings) {
 			ContextData r;
-			const PixelFormat *PF = &(r.pixelFormat);
+			const PixelFormat *PF = &(r.settings.pixelFormat);
 			PIXELFORMATDESCRIPTOR pfd = {0};
 
 			r.displayContext = hdc;
@@ -452,22 +476,22 @@ namespace jwin {
 				int i = 0;
 
 				contextAttribs[i++] = WGL_CONTEXT_MAJOR_VERSION_ARB;
-				contextAttribs[i++] = cfg.glVersionMajor;
+				contextAttribs[i++] = settings.glVersionMajor;
 
 				contextAttribs[i++] = WGL_CONTEXT_MINOR_VERSION_ARB;
-				contextAttribs[i++] = cfg.glVersionMinor;
+				contextAttribs[i++] = settings.glVersionMinor;
 
-				if (cfg.forwardCompatible || cfg.debug) {
+				if (settings.forwardCompatible || settings.debug) {
 					contextAttribs[i++] = WGL_CONTEXT_FLAGS_ARB;
 					contextAttribs[i++] = 0;
-					if (cfg.forwardCompatible) contextAttribs[i - 1] |= WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
-					if (cfg.debug) contextAttribs[i - 1] |= WGL_CONTEXT_DEBUG_BIT_ARB;
+					if (settings.forwardCompatible) contextAttribs[i - 1] |= WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
+					if (settings.debug) contextAttribs[i - 1] |= WGL_CONTEXT_DEBUG_BIT_ARB;
 				}
 
 				contextAttribs[i++] = WGL_CONTEXT_PROFILE_MASK_ARB;
-				contextAttribs[i++] = cfg.profile;
+				contextAttribs[i++] = settings.profile;
 
-				contextAttribs[i] = None;
+				contextAttribs[i] = 0;
 
 				r.renderContext = wglCreateContextAttribsARB(hdc, NULL, contextAttribs);
 			} else {
@@ -532,10 +556,10 @@ namespace jwin {
 			monitorData.monitors.clear();
 		}
 		void setVSync(Handle, bool s) {
-			JWinSwapIntervalEXT((s? 1 : 0));
+			wglSwapIntervalEXT((s? 1 : 0));
 		}
 		void swapBuffers(Handle win) {
-			SwapBuffers(GetDC(win));
+			SwapBuffers(GetDC((HWND)win));
 		}
 	}
 }

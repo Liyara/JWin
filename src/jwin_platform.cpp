@@ -13,6 +13,8 @@ namespace jwin {
 
 			jutil::out << "Finding match..." << jutil::endl;
 
+			jutil::out << "4A" << jutil::endl;
+
 			jutil::Pair<int, PixelFormat> bestMatch(-100, PixelFormat());
 
 			for (auto &i: cfgs) {

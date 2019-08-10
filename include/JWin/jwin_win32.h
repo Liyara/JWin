@@ -3,10 +3,8 @@
 #include <JWin/jwin_platform.h>
 #ifdef JUTIL_WINDOWS
 
-#include <windows.h>
-
 #define JWIN_CREATE_PROC_EXTERN(_n) extern JWinType_##_n JWin##_n;
-#define JWIN_CREATE_PROC(_n, _p) JWinType_##_n JWin##_n = (JWinType_##_n) wglGetProcAddress((const GLubyte*)#_p);
+#define JWIN_CREATE_PROC(_n, _p) JWinType_##_n JWin##_n = (JWinType_##_n) wglGetProcAddress((LPCSTR)#_p);
 
 namespace jwin {
 
@@ -56,7 +54,6 @@ namespace jwin {
 		extern const jutil::Queue<int> ATTRIB_NAMES;
 
 		int CALLBACK cbMonitorInfo(HMONITOR__*, HDC__*, tagRECT*, LPARAM);
-		extern FBConfig idealFormat;
 	}
 }
 
