@@ -127,7 +127,6 @@ namespace jwin {
 		    delete[] ctitle;
 
 		    if (win) {
-
 			    ShowWindow(win, SW_SHOW);
 
 			    registeredWindows.insert(win);
@@ -422,6 +421,7 @@ namespace jwin {
 
 			int attribNameCount = WGL_NUMBER_PIXEL_FORMATS_ARB, attribValueCount = 0;
 			JWinGetPixelFormatAttribiv(hdc, 1, 0, 1, &attribNameCount, &attribValueCount);
+
 			jutil::out << "3C" << jutil::endl;
 
 			r.reserve(attribValueCount);
@@ -567,7 +567,7 @@ namespace jwin {
 			monitorData.monitors.clear();
 		}
 		void setVSync(Handle, bool s) {
-			JWinSwapIntervalEXT((s? 1 : 0));
+			wglSwapIntervalEXT((s? 1 : 0));
 		}
 		void swapBuffers(Handle win) {
 			SwapBuffers(GetDC((HWND)win));
