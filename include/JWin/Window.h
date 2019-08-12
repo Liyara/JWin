@@ -45,6 +45,7 @@ namespace jwin {
 		jutil::String name;
 		Geometry geometry;
 		Handle handle;
+		ContextID contextID;
 		const Monitor *initMonitor;
 
 		struct EventThread : public jutil::Thread {

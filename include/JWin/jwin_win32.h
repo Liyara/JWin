@@ -3,8 +3,9 @@
 #include <JWin/jwin_platform.h>
 #ifdef JUTIL_WINDOWS
 
-#define JWIN_CREATE_PROC_EXTERN(_n) extern JWinType_##_n JWin##_n;
-#define JWIN_CREATE_PROC(_n, _p) JWinType_##_n JWin##_n = (JWinType_##_n) wglGetProcAddress((LPCSTR)#_p);
+#define JWIN_CREATE_PROC_FORWARD(_n) JWinType_##_n JWin##_n;
+#define JWIN_CREATE_PROC_EXTERN(_n) extern JWIN_CREATE_PROC_FORWARD(_n)
+#define JWIN_CREATE_PROC(_n, _p) JWin##_n = (JWinType_##_n) wglGetProcAddress((LPCSTR)#_p);
 
 namespace jwin {
 

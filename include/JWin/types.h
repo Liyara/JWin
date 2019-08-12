@@ -6,6 +6,7 @@
 namespace jwin {
 
 	typedef void* Handle;
+	typedef size_t ContextID;
 	typedef jml::Vector<long, 2> Position;
 	typedef jml::Vector<size_t, 2> Dimensions;
 

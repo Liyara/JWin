@@ -5,6 +5,11 @@
 
 namespace jwin {
 
+	JWIN_CREATE_PROC_FORWARD(CreateContextAttribs);
+	JWIN_CREATE_PROC_FORWARD(SwapIntervalEXT);
+	JWIN_CREATE_PROC_FORWARD(GetPixelFormatAttribiv);
+	JWIN_CREATE_PROC_FORWARD(GetExtensionsString);
+
 	void init() {
 		if (_dmg::createDisplay()) {
 			_img::init();
@@ -34,6 +39,8 @@ namespace jwin {
 
 	    tempContext = wglCreateContext(tempDC);
 	    wglMakeCurrent(tempDC, tempContext);
+
+	    jutil::out << "Creating processes." << jutil::endl;
 
 	    JWIN_CREATE_PROC(CreateContextAttribs, wglCreateContextAttribsARB);
 		JWIN_CREATE_PROC(SwapIntervalEXT, wglSwapIntervalEXT);
@@ -120,29 +127,6 @@ namespace jwin {
 		    delete[] ctitle;
 
 		    if (win) {
-
-		    	if (!fwininit) win32init(win);
-
-		    	size_t contextCount = _dmg::contexts.size();
-
-		    	jutil::out << "2C" << jutil::endl;
-
-		    	_dmg::desiredContextSettings.pixelFormat = 
-		    		_dmg::getNearestConfig(
-		    			_dmg::desiredContextSettings.pixelFormat, 
-		    			_dmg::getAllConfigs(GetDC(win))
-		    		)
-		    	;
-
-		    	jutil::out << "2D" << jutil::endl;
-
-				_dmg::createContext(GetDC(win), _dmg::desiredContextSettings);
-
-				jutil::out << "2E" << jutil::endl;
-
-				if (_dmg::contexts.size() > contextCount) makeContextCurrent(win, &(_dmg::contexts.last()));
-
-				jutil::out << "2F" << jutil::endl;
 
 			    ShowWindow(win, SW_SHOW);
 
@@ -367,7 +351,7 @@ namespace jwin {
 
 			for (size_t i = 0; i < ATTRIB_NAMES.size(); ++i) attrs[i] = ATTRIB_NAMES[i];
 
-			if (wglGetPixelFormatAttribivARB(hdc, cfg, 0, ATTRIB_NAMES.size(), attrs, values.getArray())) {
+			if (JWinGetPixelFormatAttribiv(hdc, cfg, 0, ATTRIB_NAMES.size(), attrs, values.getArray())) {
 
 				r.id = (JWIN_ID)cfg;
 
@@ -437,7 +421,7 @@ namespace jwin {
 			jutil::out << "3B" << jutil::endl;
 
 			int attribNameCount = WGL_NUMBER_PIXEL_FORMATS_ARB, attribValueCount = 0;
-			wglGetPixelFormatAttribivARB(hdc, 1, 0, 1, &attribNameCount, &attribValueCount);
+			JWinGetPixelFormatAttribiv(hdc, 1, 0, 1, &attribNameCount, &attribValueCount);
 			jutil::out << "3C" << jutil::endl;
 
 			r.reserve(attribValueCount);
@@ -453,19 +437,19 @@ namespace jwin {
 
 		void populateSupportedExtensions(JWIN_DISPLAY_CONTEXT hdc) {
 
-			jutil::String supportedExtensionsStr = (jutil::String)(wglGetExtensionsStringARB(hdc));
+			jutil::String supportedExtensionsStr = (jutil::String)(JWinGetExtensionsString(hdc));
 
 			supportedExtensions = jutil::split(supportedExtensionsStr, ' ');
 		}
 
-		ContextData createContext(JWIN_DISPLAY_CONTEXT hdc, const ContextSettings &settings) {
+		ContextData createContext(Handle handle, JWIN_DISPLAY_CONTEXT hdc, const ContextSettings &settings) {
 			ContextData r;
 			const PixelFormat *PF = &(r.settings.pixelFormat);
 			PIXELFORMATDESCRIPTOR pfd = {0};
 
 			r.displayContext = hdc;
 			r.settings = settings;
-			r.drawableObject = nullptr;
+			r.drawableObject = handle;
 
 			DescribePixelFormat(hdc, PF->id, sizeof(pfd), &pfd);
 			SetPixelFormat(hdc, PF->id, &pfd);
@@ -493,7 +477,7 @@ namespace jwin {
 
 				contextAttribs[i] = 0;
 
-				r.renderContext = wglCreateContextAttribsARB(hdc, NULL, contextAttribs);
+				r.renderContext = JWinCreateContextAttribs(hdc, NULL, contextAttribs);
 			} else {
 				r.renderContext = wglCreateContext(hdc);
 			}
@@ -503,13 +487,40 @@ namespace jwin {
 			return r;
 		}
 
-		void makeContextCurrent(Handle win, ContextData *context) {
+		ContextID createContext(Handle drawable) {
+			ContextID id = JWIN_INVALID;
+			if (_wmg::windowIsRegistered(drawable)) {
+				HWND win = (HWND)drawable;
+				if (!fwininit) win32init(win);
+
+		    	size_t contextCount = contexts.size();
+
+		    	desiredContextSettings.pixelFormat = 
+		    		getNearestConfig(
+		    			desiredContextSettings.pixelFormat, 
+		    			getAllConfigs(GetDC(win))
+		    		)
+		    	;
+
+				createContext(drawable, GetDC(win), desiredContextSettings);
+
+				if (contexts.size() > contextCount) id = contexts.size() - 1;
+			}
+			return id;
+		}
+		bool setContext(ContextID id) {
+			if (id != JWIN_INVALID && id < contexts.size() && _wmg::windowIsRegistered(contexts[id].drawableObject)) {
+				makeContextCurrent(&(contexts[id]));
+				return true;
+			} else return false;
+		}
+
+		void makeContextCurrent(ContextData *context) {
 			if (wglMakeCurrent(
 				context->displayContext,
 				context->renderContext
 			)) {
 				jutil::out << "Context made current." << jutil::endl;
-				context->drawableObject = win;
 				currentContext = context;
 			}
 
@@ -556,7 +567,7 @@ namespace jwin {
 			monitorData.monitors.clear();
 		}
 		void setVSync(Handle, bool s) {
-			wglSwapIntervalEXT((s? 1 : 0));
+			JWinSwapIntervalEXT((s? 1 : 0));
 		}
 		void swapBuffers(Handle win) {
 			SwapBuffers(GetDC((HWND)win));

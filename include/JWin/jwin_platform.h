@@ -104,11 +104,11 @@ namespace jwin {
 		bool validConfig(const PixelFormat&);
 
 		//Use pixel format to construct an OpenGL context, represented by a ContextData object
-		ContextData createContext(JWIN_DISPLAY_CONTEXT, const ContextSettings&);
+		ContextData createContext(Handle, JWIN_DISPLAY_CONTEXT, const ContextSettings&);
 
 		void setGLVersionMajor(int);
 		void setGLVersionMinor(int);
-		void makeContextCurrent(Handle, ContextData*);
+		void makeContextCurrent(ContextData*);
 
 		void populateSupportedExtensions(JWIN_DISPLAY_CONTEXT);
 	}

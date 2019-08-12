@@ -13,6 +13,8 @@
 	#define JWIN_SET_DISPLAY_ADAPTER SET_DISPLAY_ADAPTOR
 #endif
 
+#define JWIN_INVALID (static_cast<size_t>(-1))
+
 namespace jwin {
 
 	void init();
@@ -134,6 +136,8 @@ namespace jwin {
 		Position displayToMonitor(const Position&, const Monitor** = nullptr);
 		void setVSync(Handle, bool);
 		void swapBuffers(Handle);
+		ContextID createContext(Handle);
+		bool setContext(ContextID);
 	}
 }
 
