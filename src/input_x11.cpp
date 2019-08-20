@@ -9,7 +9,7 @@
 namespace jwin {
 	namespace input_manager {
 		Position cursorPosition;
-		
+
 		bool init() {
 			inputMode = RAW;
 			keyboardState.reserve(Event::Key::__KEY_COUNT__);
@@ -19,18 +19,15 @@ namespace jwin {
 
 			jutil::out << "Input initializing..." << jutil::endl;
 
+			for (auto &i: keyboardState) i = Event::Action::UP;
+		    for (auto &i: keycodeTranslation) i = Event::Key::UNKNOWN;
+
 			buildKeycodeTranslator();
 
 			return true;
 		}
 
 		void terminate() {}
-
-		void setInputMode(InputMode im) {
-			jutil::Thread::requestGroupWait();
-			inputMode = im;
-			jutil::Thread::requestGroupResume();
-		}
 
 		Event::Key translateKeycode(int code) {
 			KeySym ks = XkbKeycodeToKeysym(_dmg::displayData.display, code, 0, 0);
@@ -309,20 +306,18 @@ namespace jwin {
 			XWindow rr, cr;
 			int a, b;
 			unsigned int m;
-			if (_dmg::displayData.display) 
+			jutil::Thread::requestGroupWait();
+			if (_dmg::displayData.display)
 				XQueryPointer(
-					_dmg::displayData.display, 
-					_dmg::displayData.rootWindow, 
-					&rr, &cr, &a, &b, 
-					reinterpret_cast<int*>(&(cursorPosition.x())), 
-					reinterpret_cast<int*>(&(cursorPosition.y())), 
+					_dmg::displayData.display,
+					_dmg::displayData.rootWindow,
+					&rr, &cr, &a, &b,
+					reinterpret_cast<int*>(&(cursorPosition.x())),
+					reinterpret_cast<int*>(&(cursorPosition.y())),
 					&m
 				);
+            jutil::Thread::requestGroupResume();
 			return cursorPosition;
-		}
-
-		const Event::Action &keyState(const Event::Key &k) {
-			return keyboardState[k];
 		}
 
 		Event pollEvent(Handle handle, Geometry *geo) {

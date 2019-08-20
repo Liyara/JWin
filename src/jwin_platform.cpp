@@ -1,5 +1,6 @@
 #include <JWin/jwin_platform.h>
 #include <JUtil/IO/IO.h>
+#include <JUtil/Core/Thread.h>
 
 namespace jwin {
 	namespace display_manager {
@@ -11,17 +12,11 @@ namespace jwin {
 
 		PixelFormat getNearestConfig(const PixelFormat &cfg, const PixelFormatList &cfgs) {
 
-			jutil::out << "Finding match..." << jutil::endl;
-
-			jutil::out << "4A" << jutil::endl;
-
 			jutil::Pair<int, PixelFormat> bestMatch(-100, PixelFormat());
 
 			for (auto &i: cfgs) {
 				if (validConfig(i)) {
 					int score = 100;
-
-					jutil::out << "CFG " << i.id << ": ";
 
 					score -= jml::abs(cfg.samples - i.samples);
 					if ((cfg.dsMask >> 16) != (i.dsMask >> 16)) score -= 2;
@@ -30,8 +25,6 @@ namespace jwin {
 					if (cfg.stereoColor != i.stereoColor) score -= 50;
 					if (cfg.transparent != i.transparent) score -= 8;
 
-					jutil::out << score << jutil::endl;
-
 
 					if (score > bestMatch.first()) {
 						bestMatch.first() = score;
@@ -39,8 +32,6 @@ namespace jwin {
 					}
 				}
 			}
-
-			jutil::out << bestMatch.second().id << " wins!" << jutil::endl;
 
 			return bestMatch.second();
 		}
@@ -63,7 +54,7 @@ namespace jwin {
 		}
 		const Monitor *pointInMonitor(const Position &pos) {
 			for (auto &i: monitorData.monitors) {
-				int 
+				int
 					leftSide = i->getPosition().x(),
 					rightSide = leftSide + i->getSize().x(),
 					top = i->getPosition().y(),
@@ -96,5 +87,15 @@ namespace jwin {
 		jutil::Queue<Event::Action> keyboardState;
 		jutil::Queue<Event::Key> keycodeTranslation;
 		InputMode inputMode;
+
+		void setInputMode(InputMode im) {
+			jutil::Thread::requestGroupWait();
+			inputMode = im;
+			jutil::Thread::requestGroupResume();
+		}
+
+		const Event::Action &keyState(const Event::Key &k) {
+			return keyboardState[k];
+		}
 	}
 }

@@ -1,6 +1,8 @@
 #ifndef EVENT_H
 #define EVENT_H
 
+#include <JUtil/Core/version.h>
+
 namespace jwin {
     struct Event {
         enum Key {
@@ -126,7 +128,10 @@ namespace jwin {
             CONTROL = 0x02,
             ALT = 0x04,
             SUPER = 0x08,
-            FUNCTION = 0x10
+            FUNCTION = 0x10,
+            CAPS_LOCK = 0x20,
+            NUM_LOCK = 0x40,
+            SCROLL_LOCK = 0x80
         };
         enum Type {
             NO_TYPE,
@@ -140,8 +145,10 @@ namespace jwin {
             GAIN_FOCUS,
             LOSE_FOCUS,
             CURSOR_ENTER,
-            CURSOR_LEAVE,
-            EXPOSE
+            CURSOR_LEAVE
+            #ifdef JUTIL_LINUX
+            , EXPOSE
+            #endif
         };
         double x, y;
         int width, height;

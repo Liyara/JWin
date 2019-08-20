@@ -34,17 +34,17 @@ namespace jwin {
 		struct PixelFormat {
 			JWIN_ID id;
 			JWIN_PLATFORM_FORMAT platformConfig;
-			GLboolean stereoColor; 
+			GLboolean stereoColor;
 			GLint nAuxBuffers;
 			GLuint accumMask;
 			GLboolean transparent;
 			GLint samples;
-			GLboolean renderable; 
-			GLboolean doubleBuffered; 
+			GLboolean renderable;
+			GLboolean doubleBuffered;
 			GLint drawableType;
-			GLint renderType; 
-			GLuint rgbaMask; 
-			GLuint dsMask; 
+			GLint renderType;
+			GLuint rgbaMask;
+			GLuint dsMask;
 			PixelFormat() :
 				id(0),
 				stereoColor(false),
@@ -53,7 +53,7 @@ namespace jwin {
 				transparent(false),
 				samples(0),
 				renderable(true),
-				doubleBuffered(true),
+				doubleBuffered(false),
 				drawableType(JWIN_TARGET_WINDOW),
 				renderType(JWIN_RENDER_RGBA),
 				rgbaMask(JWIN_RGBA),
@@ -131,6 +131,11 @@ namespace jwin {
 		extern jutil::Queue<Event::Action> keyboardState;
 		extern jutil::Queue<Event::Key> keycodeTranslation;
 		extern InputMode inputMode;
+
+
+
+		void buildKeycodeTranslator();
+		Event::Key translateKeycode(int);
 
 		bool init();
 		void terminate();

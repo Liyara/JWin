@@ -112,14 +112,12 @@ namespace jwin {
 
 	namespace input_manager {
 
-		void buildKeycodeTranslator();
-		Event::Key translateKeycode(int);
-		void buildKeycodeTranslator();
-		Event::Key resolveKeycode(int);
+
 		void keyEvent(const XEvent&, int, Event::Action, Event*);
 		void buttonEvent(const XEvent&, Event*);
 		void moveEvent(Event*, int, int);
 		void resizeEvent(Event*, int, int);
+		Event::Key resolveKeycode(int);
 	}
 }
 

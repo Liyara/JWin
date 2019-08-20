@@ -17,6 +17,7 @@ namespace jwin {
 		void close();
 		bool open();
 		void sendAlert();
+		void revokeAlert();
 		void maximize();
 		void fullscreen(unsigned = 1);
 		void minimize(unsigned = 1);
@@ -41,10 +42,11 @@ namespace jwin {
 		void showBorder(unsigned = 1);
 
 		virtual ~Window();
-	private:	
+
+	private:
 		jutil::String name;
-		Geometry geometry;
-		Handle handle;
+		Geometry geometry, fullscreenGeometry;
+		Handle handle, dcHandle;
 		ContextID contextID;
 		const Monitor *initMonitor;
 

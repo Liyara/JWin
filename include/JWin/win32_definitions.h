@@ -6,6 +6,7 @@
 #ifdef JUTIL_WINDOWS
 
 #include <windows.h>
+#include <windowsx.h>
 #include <GL/wglew.h>
 
 #define JWIN_TARGET_WINDOW	PFD_DRAW_TO_WINDOW

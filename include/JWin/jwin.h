@@ -51,7 +51,7 @@ namespace jwin {
 			MAXIMIZE = 0x01, //SET OONLY
 			MINIMIZE = 0x02,
 			FULLSCREEN = 0x04,
-			HIDE_TASKBAR = 0x08,
+			HIDE_TASKBAR = 0x08, //UNDER WINDOWS, THE WINDOW BECOMES INVISIBLE.
 			ALERT = 0x10,
 			MOVABLE = 0x20,
 			RESIZABLE = 0x40,
@@ -92,12 +92,12 @@ namespace jwin {
 
 		/*
 			Issue commands to control window behavior in real-time.
-			
+
 			NOTE: issuing commands from seperate threads may cause slow-downs,
 			as only one thread at a time may edit a window's properties.
 		*/
 		bool issueCommands(Handle, unsigned, WindowAction);
-		bool moveWindow(Handle, Position, const Geometry&);
+		bool moveWindow(Handle, Position);
 		bool resizeWindow(Handle, const Dimensions&);
 		bool isSet(Handle, WindowProperty);
 	}

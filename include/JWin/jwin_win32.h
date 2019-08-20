@@ -19,10 +19,54 @@ namespace jwin {
 	JWIN_CREATE_PROC_EXTERN(GetPixelFormatAttribiv);
 	JWIN_CREATE_PROC_EXTERN(GetExtensionsString);
 
+	void win32init(Handle);
+
 	namespace window_manager {
 
 		extern WNDCLASSEX windowClass;
 		bool registerClass();
+
+        typedef jutil::Pair<Handle, uint64_t> WindowStateData;
+		extern jutil::Queue<WindowStateData> stateTable;
+
+		enum WindowState : uint64_t {
+            STATE_RESIZING = 0x01,
+            STATE_RESIZING_LEFT = 0x02,
+            STATE_RESIZING_RIGHT = 0x04,
+            STATE_RESIZING_TOP = 0x08,
+            STATE_RESIZING_BOTTOM = 0x10,
+            STATE_RESIZING_BORDER = 0x02 | 0x04 | 0x08 | 0x10,
+            STATE_MOVING = 0x20,
+            STATE_DISALLOW_RESIZE = 0x40,
+            STATE_DISALLOW_MOVE = 0x80,
+            STATE_FLASHING = 0x100
+		};
+
+		enum WindowCommandState {
+            COMMAND_STATE_ENABLE,
+            COMMAND_STATE_DISABLE,
+            COMMAND_STATE_KEEP
+		};
+
+		typedef void (WindowCommandHandler)(Handle, WindowCommandState);
+
+		WindowCommandState switchWindowAction(Handle, WindowProperty, WindowAction);
+
+		WindowCommandHandler
+            commandMinimize,
+            commandMaximize,
+            commandResizable,
+            commandMovable,
+            commandHideTaskbar,
+            commandAlert,
+            commandBorder,
+            commandTop,
+            commandFullscreen
+        ;
+
+		void addToStateTable(Handle);
+		void setWindowState(Handle, uint64_t);
+		uint64_t getWindowState(Handle);
 	}
 
 	namespace input_manager {
@@ -30,6 +74,7 @@ namespace jwin {
 		struct InternalEvent {
 			Event event;
 			Handle window;
+			Geometry *geometry;
 			UINT msg;
 			WPARAM wp;
 			LPARAM lp;
@@ -43,11 +88,21 @@ namespace jwin {
 			}
 		};
 
+		enum CodeType {
+            KEY_CODE,
+            SCAN_CODE
+		};
+
+		Event::Key resolveKeycode(int, CodeType);
+
+		extern jutil::Queue<InternalEvent> eventQueue;
+
 		LRESULT CALLBACK eventProc(HWND, UINT, WPARAM, LPARAM);
 		extern jutil::Queue<InternalEvent> eventQueue;
 		bool hasEvents(Handle);
 		InternalEvent popEvent(Handle);
-		void internalEventHandler(Handle);
+		void internalEventHandler(InternalEvent);
+		int getMods();
 	}
 
 	namespace display_manager {

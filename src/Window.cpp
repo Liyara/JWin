@@ -1,6 +1,7 @@
 #include "JWin/Window.h"
 #include <JUtil/IO/IO.h>
 #include <JUtil/Core/Timer.h>
+#include <windows.h>
 
 namespace jwin {
 
@@ -10,11 +11,11 @@ namespace jwin {
 	void Window::EventThread::onPause() {
 	}
 	void Window::EventThread::onStop() {
-	} 
+	}
 	void Window::EventThread::onUnpause() {
 	}
 	void Window::EventThread::main() {
-		if (!parent->handle) 
+		if (!parent->handle)
 			parent->handle = window_manager::registerWindow(parent->initMonitor, parent->name, parent->geometry.size, parent->geometry.position);
 		Event e;
 		e.type = Event::Type::NO_TYPE;
@@ -33,9 +34,9 @@ namespace jwin {
 	Window::Window(const jutil::String &n, const Dimensions &d, const Position &p, const Monitor *m) : name(n), handle(nullptr), contextID(JWIN_INVALID), eventThread(this) {
 		if (!m) m = display_manager::getPrimaryMonitor();
 		initMonitor = m;
-		geometry.position = display_manager::monitorToDisplay(m, p);
 		geometry.size = d;
 		#ifdef JUTIL_LINUX
+            geometry.position = display_manager::monitorToDisplay(m, p);
 			handle = window_manager::registerWindow(m, name, d, p);
 		#endif
 		jutil::Timer t;
@@ -49,6 +50,7 @@ namespace jwin {
 		}
 		contextID = display_manager::createContext(handle);
 		display_manager::setContext(contextID);
+		dcHandle = (Handle)(GetDC((HWND)handle));
 	}
 
 	void Window::setSize(const Dimensions &d) {
@@ -56,7 +58,7 @@ namespace jwin {
 	}
 
 	void Window::setPosition(const Position &p) {
-		window_manager::moveWindow(handle, p, geometry);
+		window_manager::moveWindow(handle, p);
 	}
 
 	void Window::maximize() {
@@ -64,6 +66,19 @@ namespace jwin {
 	}
 	void Window::fullscreen(unsigned action) {
 		window_manager::issueCommands(handle, window_manager::FULLSCREEN, (window_manager::WindowAction)action);
+		#ifdef JUTIL_WINDOWS
+            jutil::Thread::requestGroupWait();
+            if (action == window_manager::SET || (window_manager::isSet(handle, window_manager::FULLSCREEN) && action == window_manager::TOGGLE)) {
+                fullscreenGeometry = geometry;
+            }
+            if (action == window_manager::UNSET || (!(window_manager::isSet(handle, window_manager::FULLSCREEN)) && action == window_manager::TOGGLE)) {
+                if (fullscreenGeometry.size.x() && fullscreenGeometry.size.y()) setSize(fullscreenGeometry.size);
+                if (fullscreenGeometry.position.x() && fullscreenGeometry.position.y())setPosition(fullscreenGeometry.position);
+                fullscreenGeometry.size = 0;
+                fullscreenGeometry.position = 0;
+            }
+            jutil::Thread::requestGroupResume();
+        #endif
 	}
 	void Window::minimize(unsigned action) {
 		window_manager::issueCommands(handle, window_manager::MINIMIZE, (window_manager::WindowAction)action);
@@ -84,6 +99,9 @@ namespace jwin {
 	void Window::sendAlert() {
 		window_manager::issueCommands(handle, window_manager::ALERT, window_manager::WindowAction::SET);
 	}
+	void Window::revokeAlert() {
+        window_manager::issueCommands(handle, window_manager::ALERT, window_manager::WindowAction::UNSET);
+	}
 	void Window::onTop(unsigned action) {
 		window_manager::issueCommands(handle, window_manager::TOP, (window_manager::WindowAction)action);
 	}
@@ -92,7 +110,7 @@ namespace jwin {
 		display_manager::setVSync(handle, sync);
 	}
 	void Window::swapBuffers() {
-		display_manager::swapBuffers(handle);
+		display_manager::swapBuffers(dcHandle);
 	}
 
 	bool Window::alertActive() const {
@@ -139,7 +157,7 @@ namespace jwin {
 	const jutil::String &Window::getName() const {
 		return name;
 	}
-		
+
 	const Dimensions &Window::getSize() const {
 		return geometry.size;
 	}
