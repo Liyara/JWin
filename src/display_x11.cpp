@@ -108,13 +108,13 @@ namespace jwin {
 			return r;
 		}
 
-		ContextData createContext(JWIN_DISPLAY_CONTEXT display, const ContextSettings &cfg) {
+		ContextData createContext(Handle handle, JWIN_DISPLAY_CONTEXT display, const ContextSettings &cfg) {
 			jutil::out << "Creating context..." << jutil::endl;
 			ContextData r;
 
 			r.settings = cfg;
 			r.displayContext = display;
-			r.drawableObject = nullptr;
+			r.drawableObject = handle;
 
 			if (supportedExtensions.find(jutil::String("GLX_ARB_create_context"))) {
 				int *contextAttribs = new int[11];
@@ -153,14 +153,34 @@ namespace jwin {
 			return r;
 		}
 
-		void makeContextCurrent(Handle win, ContextData *context) {
+		ContextID createContext(Handle drawable) {
+			ContextID id = JWIN_INVALID;
+			if (_wmg::windowIsRegistered(drawable)) {
+				displayData.contextData->drawableObject = drawable;
+				ContextID cid = 0;
+				for (auto &i: contexts) {
+					if (displayData.contextData == &i) {
+						id = cid;
+					}
+					++cid;
+				}
+			}
+			return id;
+		}
+
+		bool setContext(ContextID id) {
+			if (id != JWIN_INVALID && id < contexts.size() && _wmg::windowIsRegistered(contexts[id].drawableObject)) {
+				makeContextCurrent(&(contexts[id]));
+				return true;
+			} else return false;
+		}
+
+		void makeContextCurrent(ContextData *context) {
 			if (glXMakeCurrent(
 				context->displayContext,
-				*((XWindow*)win),
+				*((XWindow*)context->drawableObject),
 				context->renderContext
 			)) {
-				jutil::out << "Context made current." << jutil::endl;
-				context->drawableObject = win;
 				currentContext = context;
 			}
 
@@ -204,7 +224,7 @@ namespace jwin {
 				jutil::out << "Supported extensions:" << supportedExtensions << jutil::endl;
 
 				desiredContextSettings.pixelFormat = getNearestConfig(desiredContextSettings.pixelFormat, getAllConfigs(displayData.display));
-				createContext(displayData.display, desiredContextSettings);
+				createContext(nullptr, displayData.display, desiredContextSettings);
 				if (!contexts.empty()) displayData.contextData = &(contexts[0]);
 				else displayData.contextData = nullptr;
 

@@ -53,7 +53,7 @@ namespace jwin {
 				transparent(false),
 				samples(0),
 				renderable(true),
-				doubleBuffered(false),
+				doubleBuffered(true),
 				drawableType(JWIN_TARGET_WINDOW),
 				renderType(JWIN_RENDER_RGBA),
 				rgbaMask(JWIN_RGBA),

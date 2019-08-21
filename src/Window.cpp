@@ -1,7 +1,10 @@
 #include "JWin/Window.h"
 #include <JUtil/IO/IO.h>
 #include <JUtil/Core/Timer.h>
-#include <windows.h>
+
+#ifdef JUTIL_WINDOWS
+	#include <windows.h>
+#endif
 
 namespace jwin {
 
@@ -50,7 +53,11 @@ namespace jwin {
 		}
 		contextID = display_manager::createContext(handle);
 		display_manager::setContext(contextID);
-		dcHandle = (Handle)(GetDC((HWND)handle));
+		#ifdef JUTIL_WINDOWS
+			dcHandle = (Handle)(GetDC((HWND)handle));
+		#elif defined JUTIL_LINUX
+			dcHandle = handle;
+		#endif
 	}
 
 	void Window::setSize(const Dimensions &d) {

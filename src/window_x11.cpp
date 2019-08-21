@@ -44,7 +44,11 @@ namespace jwin {
 				(monitor->getPosition() + (static_cast<jml::Vector<int, 2> >(monitor->getSize()) / 2) + position) - (realSize / 2)
 			;
 
+			jutil::out << "A" << jutil::endl;
+
 			auto _vinf = _dmg::displayData.contextData->settings.pixelFormat.platformConfig.visualInfo;
+
+			jutil::out << "B" << jutil::endl;
 
 			XSetWindowAttributes wattr;
 			wattr.background_pixel = 0;
@@ -78,8 +82,6 @@ namespace jwin {
 			if (win) {
 
 				jutil::out << "Window built." << jutil::endl;
-
-				_dmg::makeContextCurrent((Handle)win, _dmg::displayData.contextData);
 
 			   	XSizeHints hints = {0};
 
@@ -409,9 +411,15 @@ namespace jwin {
 			return XResizeWindow(_dmg::displayData.display, *((XWindow*)win), d.x(), d.y());
 		}
 
-		bool moveWindow(Handle win, Position p, const Geometry &geo) {
-			p.x() -= geo.size.x() / 2;
-			p.y() -= geo.size.y() / 2;
+		bool moveWindow(Handle win, Position p) {
+	        XWindow root;
+	        int x, y;
+	        unsigned int w, h;
+	        unsigned int b;
+	        unsigned int depth;
+	        XGetGeometry(_dmg::displayData.display, *((XWindow*)win), &root, &x, &y, &w, &h, &b, &depth);
+	        p.x() -= w / 2;
+	        p.y() -= h / 2;
 			return XMoveWindow(_dmg::displayData.display, *((XWindow*)win), p.x(), p.y());
 		}
 
